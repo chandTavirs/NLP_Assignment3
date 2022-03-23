@@ -99,9 +99,9 @@ test_data = batchify(corpus.test, eval_batch_size)
 
 ntokens = len(corpus.dictionary)
 if args.model == 'Transformer':
-    model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout).to(device)
-    #model = transformer_model.make_model(ntokens, ntokens, N= 6, d_model=args.emsize, h=args.nhead, dropout=args.dropout)\
-    #        .to(device)
+    #model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout).to(device)
+    model = transformer_model.make_model(ntokens, ntokens, N= 6, d_model=args.emsize, h=args.nhead, dropout=args.dropout)\
+            .to(device)
 else:
     model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.tied).to(device)
 
@@ -134,7 +134,7 @@ def repackage_hidden(h):
 def get_batch(source, i):
     seq_len = min(args.bptt, len(source) - 1 - i)
     data = source[i:i+seq_len]
-    target = source[i+1:i+1+seq_len].view(-1)
+    target = source[i+1:i+1+seq_len]
     return data, target
 
 
@@ -172,12 +172,13 @@ def train():
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         model.zero_grad()
         if args.model == 'Transformer':
-            output = model(data)
-            output = output.view(-1, ntokens)
-            #batch_trans = Batch(data, targets, 0)
-            #output = model(batch_trans.src, batch_trans.trg,
-            #               batch_trans.src_mask, batch_trans.trg_mask)
-            #print(output)
+            #output = model(data)
+            #output = output.view(-1, ntokens)
+            batch_trans = Batch(data, targets, 0)
+            output = model(batch_trans.src, batch_trans.trg,
+                           batch_trans.src_mask, batch_trans.trg_mask)
+            output = model.generator(output)
+            targets = batch_trans.trg_y
         else:
             hidden = repackage_hidden(hidden)
             output, hidden = model(data, hidden)
